@@ -259,6 +259,14 @@
     .emoji-big {
       font-size: 2rem;
     }
+    .success-message {
+      background: #d4edda;
+      color: #155724;
+      padding: 1rem;
+      border-radius: 12px;
+      margin-top: 1rem;
+      border: 2px solid #c3e6cb;
+    }
     @media (max-width: 480px) {
       .card { padding: 1.5rem 1rem; }
       h1 { font-size: 2rem; }
@@ -300,7 +308,7 @@
     <button class="btn-back" id="backToPage1">← back</button>
   </div>
 
-  <!-- PAGE 3: food preference -->
+  <!-- PAGE 3: food preference with EMAIL FORM -->
   <div id="page3" class="page hidden">
     <h2>🍽️ what do you crave?</h2>
     <div style="margin: 0.8rem 0 0.2rem; font-size: 1.1rem; color: #5e3346;">pick your favourite</div>
@@ -321,14 +329,25 @@
         <input type="radio" name="food" value="dessert"> 🍰 dessert
       </label>
     </div>
-    <button class="btn-next" id="finishBtn">✨ let's go! ✨</button>
+    
+    <!-- ⭐ FORMSPREE FORM - Replace YOUR_FORM_ID below ⭐ -->
+    <form id="responseForm" action="https://formspree.io/f/xlgkvyoj" method="POST">
+      <input type="hidden" name="date" id="formDate">
+      <input type="hidden" name="time" id="formTime">
+      <input type="hidden" name="food" id="formFood">
+      <input type="hidden" name="_subject" value="💖 She said YES! Date Details 💖">
+      <input type="hidden" name="_replyto" value="your-email@gmail.com">
+      <button type="submit" class="btn-next" id="submitBtn">💌 Send to my love 💌</button>
+    </form>
+    
     <button class="btn-back" id="backToPage2">← back</button>
     <div style="margin-top: 1rem; font-size: 0.95rem; color: #7b4f62;" id="summaryMessage"></div>
   </div>
 
-  <!-- small final hidden message (popup style) -->
+  <!-- message area -->
   <div id="finalMessage" style="margin-top: 1.5rem; font-size: 1.2rem; font-weight: 500; color: #b24a6d; min-height: 2.5rem;"></div>
 </div>
+
 <script>
   (function() {
     // ----- DOM refs -----
@@ -340,16 +359,17 @@
     const toFoodBtn = document.getElementById('toFoodBtn');
     const backToPage1 = document.getElementById('backToPage1');
     const backToPage2 = document.getElementById('backToPage2');
-    const finishBtn = document.getElementById('finishBtn');
+    const submitBtn = document.getElementById('submitBtn');
     const datePicker = document.getElementById('datePicker');
     const timePicker = document.getElementById('timePicker');
     const foodOptions = document.getElementById('foodOptions');
     const summaryMsg = document.getElementById('summaryMessage');
     const finalMsgDiv = document.getElementById('finalMessage');
+    const form = document.getElementById('responseForm');
 
     // state
     let selectedFood = null;
-    let noClickCount = 0; // for extra fun
+    let noClickCount = 0;
 
     // ---------- helper: show page ----------
     function showPage(pageId) {
@@ -365,31 +385,23 @@
     function moveNoButton() {
       const group = document.getElementById('yesNoGroup');
       if (!group) return;
-      const rect = group.getBoundingClientRect();
-      const noRect = noBtn.getBoundingClientRect();
-      // relative to group
       const groupW = group.offsetWidth;
       const groupH = group.offsetHeight;
       const noW = noBtn.offsetWidth;
       const noH = noBtn.offsetHeight;
       
-      // random position inside group (with margins)
       const maxX = Math.max(10, groupW - noW - 10);
       const maxY = Math.max(10, groupH - noH - 10);
       let x = Math.floor(Math.random() * maxX);
       let y = Math.floor(Math.random() * maxY);
       
-      // but keep it inside group (using transform)
       noBtn.style.position = 'relative';
       noBtn.style.left = x + 'px';
       noBtn.style.top = y + 'px';
       noBtn.style.transform = 'none';
-      // also add a little shake
       noBtn.style.transition = 'left 0.08s, top 0.08s, transform 0.08s';
-      // ensure it's still clickable
     }
 
-    // reset no button position
     function resetNoButton() {
       noBtn.style.position = 'static';
       noBtn.style.left = 'auto';
@@ -398,20 +410,17 @@
       noBtn.style.transition = 'none';
     }
 
-    // ---------- event: no button click (moves) ----------
+    // ---------- no button click ----------
     noBtn.addEventListener('click', function(e) {
       e.preventDefault();
       noClickCount++;
-      // move it!
       moveNoButton();
-      // also playful message
       finalMsgDiv.textContent = '😜 nope! click yes, love 💕';
       setTimeout(() => {
         if (page1.classList.contains('hidden') === false) {
           finalMsgDiv.textContent = '💋 just click yes...';
         }
       }, 700);
-      // if she clicks no many times, we reset position after a while (fun)
       if (noClickCount > 5) {
         setTimeout(() => {
           resetNoButton();
@@ -425,12 +434,11 @@
       }
     });
 
-    // ---------- yes button -> page2 ----------
+    // ---------- yes button ----------
     yesBtn.addEventListener('click', function() {
-      resetNoButton(); // clean
+      resetNoButton();
       showPage('page2');
       finalMsgDiv.textContent = '💗 great choice! pick a date 💗';
-      // set default date to tomorrow if possible
       const today = new Date();
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -441,14 +449,19 @@
       if (!timePicker.value) timePicker.value = '19:00';
     });
 
-    // ---------- back to page1 ----------
+    // ---------- back buttons ----------
     backToPage1.addEventListener('click', function() {
       showPage('page1');
       resetNoButton();
       finalMsgDiv.textContent = '💕 come back to yes 💕';
     });
 
-    // ---------- to food page (page3) ----------
+    backToPage2.addEventListener('click', function() {
+      showPage('page2');
+      finalMsgDiv.textContent = '⏰ adjust date & time';
+    });
+
+    // ---------- to food page ----------
     toFoodBtn.addEventListener('click', function() {
       const dateVal = datePicker.value;
       const timeVal = timePicker.value;
@@ -459,19 +472,12 @@
       showPage('page3');
       finalMsgDiv.textContent = '🍜 choose your favourite food!';
       summaryMsg.textContent = `📅 ${dateVal} at ${timeVal}`;
-      // clear selected food
       selectedFood = null;
       document.querySelectorAll('.food-card').forEach(c => c.classList.remove('selected'));
       document.querySelectorAll('input[name="food"]').forEach(i => i.checked = false);
     });
 
-    // ---------- back to page2 ----------
-    backToPage2.addEventListener('click', function() {
-      showPage('page2');
-      finalMsgDiv.textContent = '⏰ adjust date & time';
-    });
-
-    // ---------- food selection (radio) ----------
+    // ---------- food selection ----------
     foodOptions.addEventListener('change', function(e) {
       if (e.target && e.target.matches('input[name="food"]')) {
         document.querySelectorAll('.food-card').forEach(c => c.classList.remove('selected'));
@@ -482,66 +488,46 @@
       }
     });
 
-    // also click on card to select radio
     document.querySelectorAll('.food-card').forEach(card => {
       card.addEventListener('click', function(e) {
-        // if click on label itself, the radio will be toggled by browser; we just ensure class
         const radio = this.querySelector('input[type="radio"]');
         if (radio) {
           radio.checked = true;
-          // trigger change event manually
           const ev = new Event('change', { bubbles: true });
           radio.dispatchEvent(ev);
         }
       });
     });
 
-    // ---------- finish button (page3) ----------
-    finishBtn.addEventListener('click', function() {
+    // ---------- FORM SUBMISSION - Send email with her choices ----------
+    form.addEventListener('submit', function(e) {
+      const dateVal = datePicker.value;
+      const timeVal = timePicker.value;
+      
       if (!selectedFood) {
+        e.preventDefault();
         finalMsgDiv.textContent = '😋 please select a food!';
         return;
       }
-      const dateVal = datePicker.value;
-      const timeVal = timePicker.value;
-      // build summary
-      const foodEmoji = { italian: '🇮🇹', japanese: '🍣', mexican: '🌮', indian: '🍛', dessert: '🍰' };
-      const emoji = foodEmoji[selectedFood] || '🍽️';
-      const msg = `💖 perfect! our date: ${dateVal} at ${timeVal} · ${emoji} ${selectedFood} 💖`;
-      finalMsgDiv.innerHTML = msg + ' <br> ✨ i can’t wait to see you ✨';
-      summaryMsg.textContent = '✔️ done! everything is set.';
-      // disable finish button (optional)
-      finishBtn.disabled = true;
-      finishBtn.textContent = '✅ all set!';
-      // show small celebration
-      const celebration = document.createElement('div');
-      celebration.style.marginTop = '0.8rem';
-      celebration.style.fontSize = '2rem';
-      celebration.textContent = '🎉💕🥂';
-      document.getElementById('page3').appendChild(celebration);
-      setTimeout(() => {
-        if (celebration.parentNode) celebration.remove();
-        finishBtn.disabled = false;
-        finishBtn.textContent = '✨ let\'s go! ✨';
-      }, 4000);
-    });
-
-    // ---------- extra: keep no button from escaping (reset on window resize) ----------
-    window.addEventListener('resize', function() {
-      if (!page1.classList.contains('hidden')) {
-        // keep no button inside bounds, reset if out of view
-        const group = document.getElementById('yesNoGroup');
-        if (!group) return;
-        const noRect = noBtn.getBoundingClientRect();
-        const groupRect = group.getBoundingClientRect();
-        if (noRect.right > groupRect.right || noRect.left < groupRect.left || 
-            noRect.bottom > groupRect.bottom || noRect.top < groupRect.top) {
-          resetNoButton();
-        }
+      
+      if (!dateVal || !timeVal) {
+        e.preventDefault();
+        finalMsgDiv.textContent = '📌 missing date or time!';
+        return;
       }
+      
+      // Update hidden form fields with her choices
+      document.getElementById('formDate').value = dateVal;
+      document.getElementById('formTime').value = timeVal;
+      document.getElementById('formFood').value = selectedFood;
+      
+      // Show sending message
+      finalMsgDiv.innerHTML = '💕 Sending your choices to me...';
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Sending...';
     });
 
-    // set default date
+    // ---------- set default date ----------
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -551,7 +537,6 @@
     datePicker.value = `${year}-${month}-${day}`;
     if (!timePicker.value) timePicker.value = '19:00';
 
-    // reset no button on page load
     resetNoButton();
   })();
 </script>
